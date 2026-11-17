@@ -1,3 +1,5 @@
+# aerotk/widgets.py
+
 import tkinter as tk
 
 class _AeroBase(tk.Canvas):
@@ -174,6 +176,89 @@ class AeroSwitch(_AeroBase):
         self._round_rect(0, 0, self.w, self.h, 13, fill=bg_fill, outline="")
         knob_x = self.w - 22 if self.state else 4
         self.create_oval(knob_x, 4, knob_x+18, 22, fill="#ffffff", outline="")
+
+    def update_theme(self):
+        self.draw()
+
+
+class AeroCheckbox(_AeroBase):
+    def __init__(self, master, text="Checkbox", command=None, initial=False, **kwargs):
+        super().__init__(master, width=200, height=28, **kwargs)
+        self.state = initial
+        self.text = text
+        self.command = command
+        self.bind("<Button-1>", self.toggle)
+        self.draw()
+
+    def toggle(self, e=None):
+        self.state = not self.state
+        self.draw()
+        if self.command:
+            self.command(self.state)
+
+    def get(self):
+        return self.state
+
+    def draw(self):
+        self.delete("all")
+        self.configure(bg=self._get_parent_bg(), cursor="hand2")
+        
+        # Kuţu (Box)
+        box_fill = self.colors["accent"] if self.state else self.colors["input_bg"]
+        self._round_rect(0, 4, 20, 24, 5, fill=box_fill, outline=self.colors["border"])
+        
+        if self.state:
+            # Onay işareti (Check icon çizgileri)
+            self.create_line(5, 14, 9, 18, fill="#ffffff", width=2, capstyle=tk.ROUND)
+            self.create_line(9, 18, 15, 10, fill="#ffffff", width=2, capstyle=tk.ROUND)
+            
+        # Metin
+        self.create_text(30, 14, text=self.text, anchor="w", fill=self.colors["fg"], font=("Segoe UI", 10))
+
+    def update_theme(self):
+        self.draw()
+
+
+class AeroSlider(_AeroBase):
+    def __init__(self, master, from_=0, to=100, command=None, width=200, height=24, **kwargs):
+        super().__init__(master, width=width, height=height, **kwargs)
+        self.from_ = from_
+        self.to = to
+        self.command = command
+        self.value = from_
+        
+        self.bind("<B1-Motion>", self._on_drag)
+        self.bind("<Button-1>", self._on_drag)
+        self.draw()
+
+    def _on_drag(self, e):
+        # Koordinatı değere dönüştür
+        x = max(10, min(e.x, self.w - 10))
+        pct = (x - 10) / (self.w - 20)
+        self.value = self.from_ + pct * (self.to - self.from_)
+        self.draw()
+        if self.command:
+            self.command(round(self.value, 2))
+
+    def get(self):
+        return round(self.value, 2)
+
+    def draw(self):
+        self.delete("all")
+        self.configure(bg=self._get_parent_bg(), cursor="hand2")
+        
+        # Ray (Track) arkaplanı
+        self._round_rect(10, 10, self.w-10, 14, 2, fill=self.colors["switch_off"], outline="")
+        
+        # Dolu kısım
+        pct = (self.value - self.from_) / (self.to - self.from_ or 1)
+        fill_width = 10 + pct * (self.w - 20)
+        if fill_width > 10:
+            self._round_rect(10, 10, fill_width, 14, 2, fill=self.colors["accent"], outline="")
+            
+        # Topuz (Thumb)
+        thumb_x = fill_width
+        self.create_oval(thumb_x - 7, 3, thumb_x + 7, 21, fill="#ffffff", outline=self.colors["border"])
 
     def update_theme(self):
         self.draw()
